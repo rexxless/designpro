@@ -1,0 +1,21 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Изменение статуса · Design.pro{% endblock %}
+
+{% block content %}
+{% url "studio-dashboard" as studio_url %}
+<section class="panel form-panel" aria-labelledby="status-heading">
+    <h1 id="status-heading">Изменить статус</h1>
+    <p>Заявка «{{ design_request.title }}»</p>
+    <p class="muted">Для статуса «Принято в работу» укажите комментарий. Для статуса «Выполнено» загрузите изображение дизайна.</p>
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% include "includes/form_fields.html" %}
+        <div class="actions">
+            <button class="portal-button" type="submit">Сохранить статус</button>
+            {% if studio_url %}<a href="{{ studio_url }}">Отмена</a>{% endif %}
+        </div>
+    </form>
+    {% include "includes/form_errors.html" %}
+</section>
+{% endblock %}

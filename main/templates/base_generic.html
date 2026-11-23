@@ -1,0 +1,50 @@
+{% load static %}
+{% url "request-list" as request_list_url %}
+{% url "request-create" as request_create_url %}
+{% url "studio-dashboard" as studio_url %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Design.pro{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="portal">
+<header class="site-header">
+    <div class="site-width site-header-inner">
+        <a class="wordmark" href="{% url 'index' %}">Design.pro</a>
+        <nav class="site-nav" aria-label="Основная навигация">
+            {% if user.is_authenticated %}
+                {% if request_list_url %}<a href="{{ request_list_url }}">Мои заявки</a>{% endif %}
+                {% if request_create_url %}<a href="{{ request_create_url }}">Новая заявка</a>{% endif %}
+                {% if user.is_superuser and studio_url %}<a href="{{ studio_url }}">Администрирование</a>{% endif %}
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="nav-button" type="submit">Выйти</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}">Войти</a>
+                <a class="portal-button portal-button-small" href="{% url 'register' %}">Регистрация</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+
+<main class="site-width site-main">
+    {% if messages %}
+        <div class="site-messages" role="status">
+            {% for message in messages %}
+                <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% block content %}
+        {% include "includes/landing_intro.html" %}
+    {% endblock %}
+</main>
+</body>
+</html>

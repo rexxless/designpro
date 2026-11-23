@@ -1,0 +1,44 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Мои заявки · Design.pro{% endblock %}
+
+{% block content %}
+{% url "request-create" as create_url %}
+<div class="page-heading">
+    <h1>Мои заявки</h1>
+    {% if create_url %}<a class="portal-button" href="{{ create_url }}">Новая заявка</a>{% endif %}
+</div>
+
+<form class="filter-form" method="get">
+    <label for="status-filter">Статус</label>
+    <select id="status-filter" name="status">
+        <option value="">Все статусы</option>
+        {% for status in status_options %}
+            <option value="{{ status.pk }}"{% if status.pk == selected_status %} selected{% endif %}>{{ status.name }}</option>
+        {% endfor %}
+    </select>
+    <button class="portal-button portal-button-secondary" type="submit">Показать</button>
+</form>
+
+<div class="record-list">
+    {% for design_request in design_requests %}
+        {% url "request-delete" design_request.pk as delete_url %}
+        <article class="panel record">
+            <div class="record-heading">
+                <h2>{{ design_request.title }}</h2>
+                <span class="status-label">{{ design_request.status.name }}</span>
+            </div>
+            <p class="record-meta">
+                <time datetime="{{ design_request.created_at|date:'c' }}">{{ design_request.created_at|date:"d.m.Y, H:i" }}</time>
+                <span>{{ design_request.category.name }}</span>
+            </p>
+            <p class="record-description">{{ design_request.description }}</p>
+            {% if design_request.status.name == "Новая" and delete_url %}
+                <a class="danger-link" href="{{ delete_url }}">Удалить заявку</a>
+            {% endif %}
+        </article>
+    {% empty %}
+        <p class="empty-state">Заявок с выбранным статусом пока нет.</p>
+    {% endfor %}
+</div>
+{% endblock %}

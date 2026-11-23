@@ -1,0 +1,19 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Удаление категории · Design.pro{% endblock %}
+
+{% block content %}
+{% url "studio-category-list" as categories_url %}
+<section class="panel form-panel" aria-labelledby="category-delete-heading">
+    <h1 id="category-delete-heading">Удалить категорию?</h1>
+    <p>Категория «{{ category.name }}» и все её заявки будут удалены.</p>
+    <p>Заявок в категории <strong>{{ affected_count }}</strong></p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button class="portal-button portal-button-danger" type="submit">Удалить категорию</button>
+            {% if categories_url %}<a href="{{ categories_url }}">Отмена</a>{% endif %}
+        </div>
+    </form>
+</section>
+{% endblock %}

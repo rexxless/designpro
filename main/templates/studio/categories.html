@@ -1,0 +1,38 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Категории · Design.pro{% endblock %}
+
+{% block content %}
+{% url "studio-dashboard" as studio_url %}
+<div class="page-heading">
+    <h1>Категории заявок</h1>
+    {% if studio_url %}<a href="{{ studio_url }}">Все заявки</a>{% endif %}
+</div>
+
+<section class="panel form-panel form-panel-start" aria-labelledby="category-add-heading">
+    <h2 id="category-add-heading">Добавить категорию</h2>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% include "includes/form_fields.html" %}
+        <div class="actions">
+            <button class="portal-button" type="submit">Добавить</button>
+        </div>
+    </form>
+    {% include "includes/form_errors.html" %}
+</section>
+
+<section class="section" aria-labelledby="categories-heading">
+    <h2 id="categories-heading">Список категорий</h2>
+    <ul class="category-list">
+        {% for category in categories %}
+            {% url "studio-category-delete" category.pk as delete_url %}
+            <li class="panel category-line">
+                <span>{{ category.name }}</span>
+                {% if delete_url %}<a class="danger-link" href="{{ delete_url }}" aria-label="Удалить категорию {{ category.name }}">Удалить</a>{% endif %}
+            </li>
+        {% empty %}
+            <li class="empty-state">Категорий пока нет.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

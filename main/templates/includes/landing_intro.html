@@ -1,0 +1,10 @@
+{% url "request-create" as create_url %}
+<section class="landing-intro">
+    <h1>Дизайн жилых интерьеров</h1>
+    <p>Загрузите план помещения или фотографию. Студия Design.pro предложит дизайн для вашего пространства.</p>
+    {% if user.is_authenticated %}
+        {% if create_url %}<a class="portal-button" href="{{ create_url }}">Оставить заявку</a>{% endif %}
+    {% else %}
+        <a class="portal-button" href="{% url 'register' %}">Зарегистрироваться</a>
+    {% endif %}
+</section>

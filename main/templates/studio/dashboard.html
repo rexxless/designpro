@@ -1,0 +1,36 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Администрирование · Design.pro{% endblock %}
+
+{% block content %}
+{% url "studio-category-list" as categories_url %}
+<div class="page-heading">
+    <h1>Заявки студии</h1>
+    {% if categories_url %}<a class="portal-button portal-button-secondary" href="{{ categories_url }}">Категории</a>{% endif %}
+</div>
+
+<div class="record-list">
+    {% for design_request in design_requests %}
+        {% url "studio-request-status" design_request.pk as status_url %}
+        <article class="panel record">
+            <div class="record-heading">
+                <h2>{{ design_request.title }}</h2>
+                <span class="status-label">{{ design_request.status.name }}</span>
+            </div>
+            <p class="record-meta">
+                <time datetime="{{ design_request.created_at|date:'c' }}">{{ design_request.created_at|date:"d.m.Y, H:i" }}</time>
+                <span>{{ design_request.category.name }}</span>
+            </p>
+            <p class="record-description">{{ design_request.description }}</p>
+            <div class="actions">
+                {% if design_request.image %}<a href="{{ design_request.image.url }}">Открыть файл помещения</a>{% endif %}
+                {% if design_request.status.name == "Новая" and status_url %}
+                    <a href="{{ status_url }}">Изменить статус</a>
+                {% endif %}
+            </div>
+        </article>
+    {% empty %}
+        <p class="empty-state">Заявок пока нет.</p>
+    {% endfor %}
+</div>
+{% endblock %}
