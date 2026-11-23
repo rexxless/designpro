@@ -32,6 +32,15 @@ class LoginForm(BootstrapFormMixin, AuthenticationForm):
     username = forms.CharField(label='Логин')
     password = forms.CharField(label='Пароль', widget=forms.PasswordInput)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for name in ('username', 'password'):
+            field = self.fields[name]
+            field.widget.attrs['class'] = 'form-control'
+            field.widget.attrs['placeholder'] = field.label
+
+
 name_validator = RegexValidator(
     regex=r'^[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)*\Z',
     message='Допускаются только русские буквы и дефис.',
@@ -59,11 +68,15 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
     patronymic = forms.CharField(
         max_length=150,
         label='Отчество',
-        validators=[name_validator], required=False,
+        validators=[name_validator],
+        required=False,
+        empty_value=None,
     )
 
     accept_terms = forms.BooleanField(
         label='Согласие на обработку персональных данных',
+        label_suffix='',
+        required=True,
     )
 
     class Meta(UserCreationForm.Meta):
@@ -76,6 +89,8 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
         self.fields['password1'].label = 'Пароль'
         self.fields['password2'].label = 'Повторите пароль'
         self.fields['username'].label = 'Логин'
+
+        self.fields['username'].help_text='Только латинские буквы и дефис.'
 
         self.fields['username'].validators=[username_validator]
 

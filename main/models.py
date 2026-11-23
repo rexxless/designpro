@@ -80,11 +80,22 @@ class Status(models.Model):
 
 
 class Profile(models.Model):
-    patronymic = models.CharField(null=True, max_length=200)
+    patronymic = models.CharField(null=True, max_length=150)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
+
+    def __str__(self):
+        """String for representing the Model object."""
+        return self.user.username
+
+    def get_full_name(self):
+        """String for displaying user's full name."""
+        name = [self.user.last_name, self.user.first_name]
+        if self.patronymic:
+            name.append(self.patronymic)
+        return str(' '.join(name))
 
 
 
