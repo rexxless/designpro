@@ -10,11 +10,13 @@ from django.urls import reverse
 class Request(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(max_length=500)
-    category = models.ForeignKey('Category', on_delete=models.RESTRICT, null=True)
-    image = models.ImageField(upload_to='requests', blank=True, null=True)
+    category = models.ForeignKey('Category', on_delete=models.RESTRICT)
+    plan_image = models.ImageField(upload_to='requests')
+    final_image = models.ImageField(upload_to='requests', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    status = models.ForeignKey('Status', on_delete=models.RESTRICT, null=True)
+    status = models.ForeignKey('Status', on_delete=models.RESTRICT)
+    user = models.ForeignKey('Profile', on_delete=models.CASCADE)
 
     class Meta:
         ordering = ['-created_at']
@@ -41,7 +43,7 @@ class Category(models.Model):
 
     def get_absolute_url(self):
         """Returns the url to access a particular genre instance."""
-        return reverse('categ', args=[str(self.id)])
+        return reverse('category-detail', args=[str(self.id)])
 
     class Meta:
         ordering = ['name']
@@ -54,6 +56,12 @@ class Category(models.Model):
         ]
 
 class Status(models.Model):
+    class Code(models.TextChoices):
+        NEW = 'new', 'Новая'
+        IN_PROGRESS = 'in_progress', 'Принято в работу'
+        COMPLETED = 'completed', 'Выполнено'
+
+    code = models.CharField(max_length=16, choices=Code.choices, unique=True, null=True, blank=True)
     name = models.CharField(
         max_length=200,
         unique=True,

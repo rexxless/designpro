@@ -1,18 +1,19 @@
 {% extends "base_generic.html" %}
 
-{% block title %}Новая заявка · Design.pro{% endblock %}
+{% block title %}Оставить заявку · Design.pro{% endblock %}
 
 {% block content %}
 {% url "request-list" as list_url %}
+{% url "index" as home_url %}
 <section class="panel form-panel" aria-labelledby="create-heading">
-    <h1 id="create-heading">Новая заявка</h1>
+    <h1 id="create-heading">Оставить заявку</h1>
     <p class="muted">Прикрепите фотографию или план в формате JPG, JPEG, PNG или BMP. Размер файла до 2 МБ.</p>
     <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         {% include "includes/form_fields.html" %}
         <div class="actions">
             <button class="portal-button" type="submit">Отправить заявку</button>
-            {% if list_url %}<a href="{{ list_url }}">Отмена</a>{% endif %}
+            <a href="{{ list_url|default:home_url }}">Отмена</a>
         </div>
     </form>
     {% include "includes/form_errors.html" %}

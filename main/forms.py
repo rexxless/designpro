@@ -1,12 +1,14 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.core.validators import RegexValidator
+from django.core.validators import FileExtensionValidator, RegexValidator
 from django.contrib.auth.forms import (
     AuthenticationForm,
     PasswordResetForm,
     SetPasswordForm,
     UserCreationForm,
 )
+
+from .models import Category, Request
 
 
 class BootstrapFormMixin:
@@ -107,6 +109,41 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
             )
 
         return email
+
+
+class RequestCreateForm(BootstrapFormMixin, forms.ModelForm):
+    title = forms.CharField(max_length=150, label="Название", required=True)
+    description = forms.CharField(max_length=255, label='Описание', required=True)
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        label='Категория',
+        required=True,
+        empty_label='Выберите категорию'
+    )
+    plan_image = forms.ImageField(
+        label='План помещения',
+        required=True,
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=('jpg', 'jpeg', 'png', 'bmp'),
+                message='Загрузите файл с расширением JPG, JPEG, PNG или BMP.',
+            ),
+        ],
+    )
+
+    class Meta:
+        model = Request
+        fields = ('title', 'description', 'category', 'plan_image')
+
+    def clean_plan_image(self):
+        upload = self.cleaned_data['plan_image']
+        if upload.size > 2 * 1024 * 1024:
+            raise forms.ValidationError('Размер файла не должен превышать 2 МБ.')
+        if upload.image.format not in {'JPEG', 'PNG', 'BMP'}:
+            raise forms.ValidationError('Загрузите изображение в формате JPEG, PNG или BMP.')
+
+        return upload
+
 
 class StyledPasswordResetForm(BootstrapFormMixin, PasswordResetForm):
     pass

@@ -5,6 +5,18 @@
 {% block content %}
     {% include "includes/landing_intro.html" %}
 
+    {% if user.is_authenticated %}
+        {% url "request-create" as create_url %}
+        <section class="section panel record" aria-labelledby="request-heading">
+            <h2 id="request-heading">Заявка на дизайн интерьера</h2>
+            {% if create_url %}
+                <a class="portal-button" href="{{ create_url }}">Оставить заявку</a>
+            {% else %}
+                <button class="portal-button portal-button-secondary" type="button" disabled>Оставить заявку</button>
+            {% endif %}
+        </section>
+    {% endif %}
+
     <section class="section" aria-labelledby="portfolio-heading">
         <div class="page-heading">
             <h2 id="portfolio-heading">Завершённые проекты</h2>
