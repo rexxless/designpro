@@ -3,7 +3,6 @@
 {% block title %}Удаление заявки · Design.pro{% endblock %}
 
 {% block content %}
-{% url "request-list" as list_url %}
 <section class="panel form-panel" aria-labelledby="delete-heading">
     <h1 id="delete-heading">Удалить заявку?</h1>
     <p>Вы собираетесь удалить заявку «{{ design_request.title }}».</p>
@@ -11,7 +10,7 @@
         {% csrf_token %}
         <div class="actions">
             <button class="portal-button portal-button-danger" type="submit">Удалить заявку</button>
-            {% if list_url %}<a href="{{ list_url }}">Отмена</a>{% endif %}
+            <a href="{{ design_request.get_absolute_url }}">Отмена</a>
         </div>
     </form>
 </section>

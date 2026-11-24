@@ -145,6 +145,13 @@ class RequestCreateForm(BootstrapFormMixin, forms.ModelForm):
         return upload
 
 
+class RequestUpdateForm(RequestCreateForm):
+    def clean_plan_image(self):
+        if 'plan_image' in self.changed_data:
+            return super().clean_plan_image()
+        return self.cleaned_data['plan_image']
+
+
 class StyledPasswordResetForm(BootstrapFormMixin, PasswordResetForm):
     pass
 

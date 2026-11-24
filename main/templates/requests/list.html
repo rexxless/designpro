@@ -22,7 +22,6 @@
 
 <div class="record-list">
     {% for design_request in design_requests %}
-        {% url "request-delete" design_request.pk as delete_url %}
         <article class="panel record">
             <div class="record-heading">
                 <h2><a href="{{ design_request.get_absolute_url }}">{{ design_request.title }}</a></h2>
@@ -33,9 +32,7 @@
                 <span>{{ design_request.category.name }}</span>
             </p>
             <p class="record-description">{{ design_request.description }}</p>
-            {% if design_request.status.name == "Новая" and delete_url %}
-                <a class="danger-link" href="{{ delete_url }}">Удалить заявку</a>
-            {% endif %}
+            {% include "requests/actions.html" %}
         </article>
     {% empty %}
         <p class="empty-state">Заявок с выбранным статусом пока нет.</p>

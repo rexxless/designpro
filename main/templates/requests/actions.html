@@ -1,0 +1,6 @@
+<div class="actions">
+    <a class="portal-button portal-button-secondary" href="{% url 'request-update' design_request.pk %}">Редактировать заявку</a>
+    {% if user.is_superuser or design_request.status.code == "new" %}
+        <a class="danger-link" href="{% url 'request-delete' design_request.pk %}">Удалить заявку</a>
+    {% endif %}
+</div>

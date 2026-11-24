@@ -10,6 +10,7 @@
     {% else %}
         <a href="{% url 'index' %}">На главную</a>
     {% endif %}
+    {% include "requests/actions.html" %}
 </div>
 
 <article class="panel record" aria-labelledby="request-title">

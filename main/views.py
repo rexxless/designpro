@@ -3,8 +3,9 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods
 
-from .forms import RegistrationForm, RequestCreateForm
+from .forms import RegistrationForm, RequestCreateForm, RequestUpdateForm
 from .models import Profile, Request, Status
 
 
@@ -79,3 +80,41 @@ def request_list(request):
         'status_options': status_options,
         'selected_status': selected_status,
     })
+
+
+@login_required
+def request_update(request, pk):
+    design_request = get_object_or_404(request_for_user(request.user), pk=pk)
+    if request.method == 'POST':
+        form = RequestUpdateForm(request.POST, request.FILES, instance=design_request)
+        if form.is_valid():
+            if form.has_changed():
+                updated_request = form.save(commit=False)
+                updated_request.save(update_fields=[*form.changed_data, 'updated_at'])
+                messages.success(request, 'Изменения сохранены.')
+            return redirect(design_request)
+    else:
+        form = RequestUpdateForm(instance=design_request)
+
+    return render(request, 'requests/update.html', {
+        'form': form,
+        'design_request': design_request,
+    })
+
+
+@login_required
+@require_http_methods(['GET', 'HEAD', 'POST'])
+def request_delete(request, pk):
+    deletable_requests = request_for_user(request.user)
+    if not request.user.is_superuser:
+        deletable_requests = deletable_requests.filter(status__code=Status.Code.NEW)
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            design_request = get_object_or_404(deletable_requests.select_for_update(), pk=pk)
+            design_request.delete()
+        messages.success(request, 'Заявка удалена.')
+        return redirect('request-list')
+
+    design_request = get_object_or_404(deletable_requests, pk=pk)
+    return render(request, 'requests/confirm_delete.html', {'design_request': design_request})

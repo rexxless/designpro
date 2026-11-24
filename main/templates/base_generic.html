@@ -19,7 +19,9 @@
         <a class="wordmark" href="{% url 'index' %}">Design.pro</a>
         <nav class="site-nav" aria-label="Основная навигация">
             {% if user.is_authenticated %}
-                {% if request_list_url %}<a href="{{ request_list_url }}">Мои заявки</a>{% endif %}
+                {% if request_list_url %}
+                    <a href="{{ request_list_url }}">{% if user.is_superuser %}Заявки{% else %}Мои заявки{% endif %}</a>
+                {% endif %}
                 {% if request_create_url %}<a href="{{ request_create_url }}">Новая заявка</a>{% endif %}
                 {% if user.is_superuser and studio_url %}<a href="{{ studio_url }}">Администрирование</a>{% endif %}
                 <form method="post" action="{% url 'logout' %}">

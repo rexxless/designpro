@@ -1,0 +1,19 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Редактирование заявки · Design.pro{% endblock %}
+
+{% block content %}
+<section class="panel form-panel" aria-labelledby="update-heading">
+    <h1 id="update-heading">Редактирование заявки</h1>
+    <p class="muted">Заявка №{{ design_request.pk }}. Оставьте поле с файлом пустым, чтобы сохранить текущий план помещения.</p>
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% include "includes/form_fields.html" %}
+        <div class="actions">
+            <button class="portal-button" type="submit">Сохранить изменения</button>
+            <a href="{{ design_request.get_absolute_url }}">Отмена</a>
+        </div>
+    </form>
+    {% include "includes/form_errors.html" %}
+</section>
+{% endblock %}
