@@ -25,7 +25,7 @@
         {% url "request-delete" design_request.pk as delete_url %}
         <article class="panel record">
             <div class="record-heading">
-                <h2>{{ design_request.title }}</h2>
+                <h2><a href="{{ design_request.get_absolute_url }}">{{ design_request.title }}</a></h2>
                 <span class="status-label">{{ design_request.status.name }}</span>
             </div>
             <p class="record-meta">

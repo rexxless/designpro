@@ -1,0 +1,43 @@
+{% extends "base_generic.html" %}
+
+{% block title %}{{ design_request.title }} · Design.pro{% endblock %}
+
+{% block content %}
+{% url "request-list" as list_url %}
+<div class="page-heading">
+    {% if list_url %}
+        <a href="{{ list_url }}">Назад к заявкам</a>
+    {% else %}
+        <a href="{% url 'index' %}">На главную</a>
+    {% endif %}
+</div>
+
+<article class="panel record" aria-labelledby="request-title">
+    <div class="record-heading">
+        <h1 id="request-title">{{ design_request.title }}</h1>
+        <span class="status-label">{{ design_request.status.name }}</span>
+    </div>
+    <p class="record-meta">
+        <span>Заявка №{{ design_request.pk }}</span>
+        <span>{{ design_request.category.name }}</span>
+        <time datetime="{{ design_request.created_at|date:'c' }}">{{ design_request.created_at|date:"d.m.Y, H:i" }}</time>
+    </p>
+
+    <h2>Описание</h2>
+    <p class="record-description">{{ design_request.description }}</p>
+
+    {% if design_request.plan_image %}
+        <section class="section" aria-labelledby="plan-heading">
+            <h2 id="plan-heading">План помещения</h2>
+            <img class="img-fluid rounded" src="{{ design_request.plan_image.url }}" alt="План помещения для заявки «{{ design_request.title }}»" loading="lazy">
+        </section>
+    {% endif %}
+
+    {% if design_request.final_image %}
+        <section class="section" aria-labelledby="design-heading">
+            <h2 id="design-heading">Готовый дизайн</h2>
+            <img class="img-fluid rounded" src="{{ design_request.final_image.url }}" alt="Готовый дизайн для заявки «{{ design_request.title }}»" loading="lazy">
+        </section>
+    {% endif %}
+</article>
+{% endblock %}

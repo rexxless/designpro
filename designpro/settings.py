@@ -130,5 +130,5 @@ MAILERS = {
 
 # Auth redirects
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'index'
+LOGIN_REDIRECT_URL = 'request-list'
 LOGOUT_REDIRECT_URL = 'index'
