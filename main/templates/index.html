@@ -25,9 +25,7 @@
         <div class="project-grid">
             {% for project in completed_requests %}
                 <article class="panel project-card">
-                    {% if project.design_image %}
-                        <img src="{{ project.design_image.url }}" alt="Дизайн проекта «{{ project.title }}»" loading="lazy">
-                    {% endif %}
+                    <img src="{% url 'request-design' project.pk %}" alt="Дизайн проекта «{{ project.title }}»" loading="lazy">
                     <div class="project-card-body">
                         <h3>{{ project.title }}</h3>
                         <p>{{ project.category.name }}</p>

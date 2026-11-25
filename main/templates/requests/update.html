@@ -6,6 +6,9 @@
 <section class="panel form-panel" aria-labelledby="update-heading">
     <h1 id="update-heading">Редактирование заявки</h1>
     <p class="muted">Заявка №{{ design_request.pk }}. Оставьте поле с файлом пустым, чтобы сохранить текущий план помещения.</p>
+    {% if design_request.plan_image %}
+        <p><a href="{% url 'request-plan' design_request.pk %}">Открыть текущий план</a></p>
+    {% endif %}
     <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         {% include "includes/form_fields.html" %}

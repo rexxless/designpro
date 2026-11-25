@@ -30,14 +30,14 @@
     {% if design_request.plan_image %}
         <section class="section" aria-labelledby="plan-heading">
             <h2 id="plan-heading">План помещения</h2>
-            <img class="img-fluid rounded" src="{{ design_request.plan_image.url }}" alt="План помещения для заявки «{{ design_request.title }}»" loading="lazy">
+            <img class="img-fluid rounded" src="{% url 'request-plan' design_request.pk %}" alt="План помещения для заявки «{{ design_request.title }}»" loading="lazy">
         </section>
     {% endif %}
 
-    {% if design_request.final_image %}
+    {% if design_request.final_image and design_request.status.code == "completed" %}
         <section class="section" aria-labelledby="design-heading">
             <h2 id="design-heading">Готовый дизайн</h2>
-            <img class="img-fluid rounded" src="{{ design_request.final_image.url }}" alt="Готовый дизайн для заявки «{{ design_request.title }}»" loading="lazy">
+            <img class="img-fluid rounded" src="{% url 'request-design' design_request.pk %}" alt="Готовый дизайн для заявки «{{ design_request.title }}»" loading="lazy">
         </section>
     {% endif %}
 </article>

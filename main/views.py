@@ -3,8 +3,10 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods, require_safe
 
 from .forms import (
     CategoryForm,
@@ -22,8 +24,20 @@ def request_for_user(user):
     return Request.objects.filter(user=user)
 
 
+def published_designs():
+    return Request.objects.filter(
+        status__code=Status.Code.COMPLETED,
+        final_image__isnull=False,
+    ).exclude(final_image='')
+
+
 def index(request):
-    return render(request, 'index.html')
+    completed_requests = published_designs().select_related('category').order_by('-created_at', '-pk')[:4]
+    in_progress_count = Request.objects.filter(status__code=Status.Code.IN_PROGRESS).count()
+    return render(request, 'index.html', {
+        'completed_requests': completed_requests,
+        'in_progress_count': in_progress_count,
+    })
 
 
 def register(request):
@@ -68,6 +82,31 @@ def request_create(request):
 def request_detail(request, pk):
     design_request = get_object_or_404(request_for_user(request.user), pk=pk)
     return render(request, 'requests/detail.html', {'design_request': design_request})
+
+
+def serve_request_image(image):
+    if not image:
+        raise Http404
+    try:
+        response = FileResponse(image.open('rb'))
+    except FileNotFoundError as error:
+        raise Http404 from error
+    response.headers['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    return response
+
+
+@login_required
+@never_cache
+@require_safe
+def request_plan(request, pk):
+    design_request = get_object_or_404(request_for_user(request.user), pk=pk)
+    return serve_request_image(design_request.plan_image)
+
+
+@require_safe
+def request_design(request, pk):
+    design_request = get_object_or_404(published_designs(), pk=pk)
+    return serve_request_image(design_request.final_image)
 
 
 @login_required

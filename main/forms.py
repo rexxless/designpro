@@ -1,3 +1,5 @@
+from unicodedata import name as unicode_name
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator, RegexValidator
@@ -31,22 +33,23 @@ class BootstrapFormMixin:
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
-    username = forms.CharField(label='Логин')
-    password = forms.CharField(label='Пароль', widget=forms.PasswordInput)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        for name in ('username', 'password'):
+        for name, label in (('username', 'Логин'), ('password', 'Пароль')):
             field = self.fields[name]
-            field.widget.attrs['class'] = 'form-control'
-            field.widget.attrs['placeholder'] = field.label
+            field.label = label
+            field.widget.attrs['placeholder'] = label
 
 
-name_validator = RegexValidator(
-    regex=r'^[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)*\Z',
-    message='Допускаются только русские буквы и дефис.',
-)
+def validate_name(value):
+    letters = value.replace(' ', '').replace('-', '')
+    if not letters or any(
+        not letter.isalpha() or not unicode_name(letter, '').startswith('CYRILLIC ')
+        for letter in letters
+    ):
+        raise forms.ValidationError('Допускаются только кириллические буквы, пробелы и дефисы.')
+
 
 username_validator = RegexValidator(regex=r'^[A-Za-z-]+\Z')
 
@@ -56,21 +59,21 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
     first_name = forms.CharField(
         max_length=150,
         label='Имя',
-        validators=[name_validator],
+        validators=[validate_name],
         required=True,
     )
 
     last_name = forms.CharField(
         max_length=150,
         label='Фамилия',
-        validators=[name_validator],
+        validators=[validate_name],
         required=True,
     )
 
     patronymic = forms.CharField(
         max_length=150,
         label='Отчество',
-        validators=[name_validator],
+        validators=[validate_name],
         required=False,
         empty_value=None,
     )
@@ -123,6 +126,7 @@ class RequestCreateForm(BootstrapFormMixin, forms.ModelForm):
     plan_image = forms.ImageField(
         label='План помещения',
         required=True,
+        widget=forms.FileInput,
         validators=[
             FileExtensionValidator(
                 allowed_extensions=('jpg', 'jpeg', 'png', 'bmp'),
