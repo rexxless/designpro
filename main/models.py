@@ -24,6 +24,10 @@ class Request(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    @property
+    def available_status_codes(self):
+        return Status.TRANSITIONS.get(self.status.code, ())
+
     def save(self, *, using=None, update_fields=None, **kwargs):
         database = using or router.db_for_write(type(self), instance=self)
         image_fields = ('plan_image', 'final_image')
@@ -103,6 +107,11 @@ class Status(models.Model):
         NEW = 'new', 'Новая'
         IN_PROGRESS = 'in_progress', 'Принято в работу'
         COMPLETED = 'completed', 'Выполнено'
+
+    TRANSITIONS = {
+        Code.NEW: (Code.IN_PROGRESS, Code.COMPLETED),
+        Code.IN_PROGRESS: (Code.COMPLETED,),
+    }
 
     code = models.CharField(max_length=16, choices=Code.choices, unique=True, null=True, blank=True)
     name = models.CharField(

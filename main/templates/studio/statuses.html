@@ -1,0 +1,17 @@
+{% extends "base_generic.html" %}
+
+{% block title %}Статусы заявок · Design.pro{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1>Статусы заявок</h1>
+    <a class="portal-button portal-button-secondary" href="{% url 'studio-dashboard' %}">Все заявки</a>
+</div>
+<ul class="category-list">
+    {% for status in statuses %}
+        <li class="panel category-line"><a href="{{ status.get_absolute_url }}">{{ status.name }}</a></li>
+    {% empty %}
+        <li class="empty-state">Статусов пока нет.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

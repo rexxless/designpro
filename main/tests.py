@@ -1,8 +1,12 @@
+from io import BytesIO
 from tempfile import TemporaryDirectory
+
+from PIL import Image
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
@@ -113,6 +117,53 @@ class StudioRequestTests(TestCase):
         self.client.force_login(self.member)
         self.assertContains(self.client.get(item.get_absolute_url()), 'Уточним размеры окна.')
         self.assertContains(self.client.get(reverse('request-list')), '<h1>Мои заявки</h1>', html=True)
+
+    def test_in_progress_request_can_be_completed_from_studio_or_edit_page(self):
+        in_progress = Status.objects.get(code=Status.Code.IN_PROGRESS)
+        completed = Status.objects.get(code=Status.Code.COMPLETED)
+        self.client.force_login(self.admin)
+        with TemporaryDirectory() as directory, self.settings(MEDIA_ROOT=directory):
+            for route in ('studio-request-status', 'request-update'):
+                with self.subTest(route=route):
+                    item = self.make_request('Комната', status=in_progress, comment='Согласовано.')
+                    status_url = reverse('studio-request-status', args=[item.pk])
+                    self.assertContains(self.client.get(reverse('studio-dashboard')), status_url)
+                    url = reverse(route, args=[item.pk])
+                    page = self.client.get(url)
+                    self.assertContains(page, 'Выполнено')
+                    self.assertNotContains(page, 'name="comment"')
+                    data = {'status': completed.pk, 'title': 'Новый заголовок',
+                            'description': item.description, 'category': item.category_id}
+                    self.assertContains(self.client.post(url, data), 'Загрузите готовый дизайн')
+                    item.refresh_from_db()
+                    self.assertEqual(item.status, in_progress)
+                    self.assertEqual(item.title, 'Комната')
+
+                    image = BytesIO()
+                    Image.new('RGB', (2, 2)).save(image, format='PNG')
+                    data['final_image'] = SimpleUploadedFile('design.png', image.getvalue())
+                    self.assertEqual(self.client.post(url, data).status_code, 302)
+                    item.refresh_from_db()
+                    self.assertEqual(item.status, completed)
+                    self.assertEqual(item.comment, 'Согласовано.')
+                    self.assertTrue(default_storage.exists(item.final_image.name))
+                    self.assertEqual(self.client.get(status_url).status_code, 404)
+
+    def test_member_cannot_change_status_when_editing_own_request(self):
+        item = self.make_request('Комната')
+        in_progress = Status.objects.get(code=Status.Code.IN_PROGRESS)
+        self.client.force_login(self.member)
+        url = reverse('request-update', args=[item.pk])
+        self.assertNotContains(self.client.get(url), 'name="status"')
+        response = self.client.post(url, {
+            'title': 'Новый заголовок', 'description': item.description,
+            'category': item.category_id, 'status': in_progress.pk, 'comment': 'Комментарий',
+        })
+        self.assertRedirects(response, item.get_absolute_url())
+        item.refresh_from_db()
+        self.assertEqual(item.title, 'Новый заголовок')
+        self.assertEqual(item.status, self.pending)
+        self.assertFalse(item.comment)
 
     def test_replacement_and_cascade_delete_only_unreferenced_files(self):
         with TemporaryDirectory() as directory, self.settings(MEDIA_ROOT=directory):

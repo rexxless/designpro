@@ -17,6 +17,7 @@ urlpatterns = [
     path('superadmin/requests/<int:pk>/status/', views.studio_request_status, name='studio-request-status'),
     path('superadmin/categories/', views.studio_categories, name='studio-category-list'),
     path('superadmin/categories/<int:pk>/', views.studio_group_detail, {'model': Category}, name='category-detail'),
+    path('superadmin/statuses/', views.studio_statuses, name='studio-status-list'),
     path('superadmin/statuses/<int:pk>/', views.studio_group_detail, {'model': Status}, name='status-detail'),
     path('superadmin/categories/<int:pk>/delete/', views.studio_category_delete, name='studio-category-delete'),
 ]

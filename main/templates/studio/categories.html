@@ -3,10 +3,9 @@
 {% block title %}Категории · Design.pro{% endblock %}
 
 {% block content %}
-{% url "studio-dashboard" as studio_url %}
 <div class="page-heading">
     <h1>Категории заявок</h1>
-    {% if studio_url %}<a href="{{ studio_url }}">Все заявки</a>{% endif %}
+    <a class="portal-button portal-button-secondary" href="{% url 'studio-dashboard' %}">Все заявки</a>
 </div>
 
 <section class="panel form-panel form-panel-start" aria-labelledby="category-add-heading">

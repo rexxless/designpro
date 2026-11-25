@@ -55,9 +55,12 @@ def validate_name(value):
 
 
 class RegistrationForm(BootstrapFormMixin, UserCreationForm):
+    field_order = ('username', 'email', 'first_name', 'last_name', 'patronymic',
+                   'password1', 'password2', 'accept_terms')
+
     username = forms.CharField(
         label='Логин',
-        max_length=get_user_model()._meta.get_field('username').max_length,
+        max_length=150,
         strip=False,
         help_text='Только латинские буквы и дефис.',
         validators=[RegexValidator(r'\A[A-Za-z-]+\Z', 'Допускаются только латинские буквы и дефис.')],
@@ -154,17 +157,38 @@ class RequestUpdateForm(RequestCreateForm):
 
 class RequestStatusForm(BootstrapFormMixin, forms.Form):
     status = forms.ModelChoiceField(
-        queryset=Status.objects.filter(code__in=(Status.Code.IN_PROGRESS, Status.Code.COMPLETED)),
-        label='Статус',
+        queryset=Status.objects.none(),
+        label='Новый статус',
         empty_label='Выберите статус',
     )
-    comment = forms.CharField(label='Комментарий', widget=forms.Textarea, required=False)
-    final_image = forms.ImageField(label='Готовый дизайн', required=False)
+    comment = forms.CharField(
+        label='Комментарий',
+        widget=forms.Textarea,
+        required=False,
+        help_text='Обязателен при переходе в «Принято в работу».',
+    )
+    final_image = forms.ImageField(
+        label='Готовый дизайн',
+        required=False,
+        help_text='Обязателен при переходе в «Выполнено».',
+    )
+
+    def __init__(self, *args, allowed_codes, optional=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        status = self.fields['status']
+        status.queryset = Status.objects.filter(code__in=allowed_codes)
+        if optional:
+            status.required = False
+            status.empty_label = 'Оставить текущий статус'
+        if Status.Code.IN_PROGRESS not in allowed_codes:
+            del self.fields['comment']
 
     def clean(self):
         cleaned_data = super().clean()
         status = cleaned_data.get('status')
         if status is None:
+            if 'status' in cleaned_data and (cleaned_data.get('comment') or cleaned_data.get('final_image')):
+                self.add_error('status', 'Выберите новый статус.')
             return cleaned_data
 
         if status.code == Status.Code.IN_PROGRESS and not cleaned_data.get('comment'):
@@ -177,6 +201,15 @@ class RequestStatusForm(BootstrapFormMixin, forms.Form):
             self.add_error('final_image', 'Загрузите готовый дизайн, чтобы завершить заявку.')
 
         return cleaned_data
+
+    def apply_status(self, design_request):
+        status = self.cleaned_data['status']
+        design_request.status = status
+        if status.code == Status.Code.IN_PROGRESS:
+            design_request.comment = self.cleaned_data['comment']
+            return ['status', 'comment']
+        design_request.final_image = self.cleaned_data['final_image']
+        return ['status', 'final_image']
 
 
 class CategoryForm(BootstrapFormMixin, forms.ModelForm):

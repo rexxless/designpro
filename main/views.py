@@ -144,21 +144,38 @@ def request_list(request):
 
 
 @login_required
+@require_http_methods(['GET', 'HEAD', 'POST'])
+@transaction.atomic
 def request_update(request, pk):
-    design_request = get_object_or_404(request_for_user(request.user), pk=pk)
-    if request.method == 'POST':
-        form = RequestUpdateForm(request.POST, request.FILES, instance=design_request)
-        if form.is_valid():
-            if form.has_changed():
-                updated_request = form.save(commit=False)
-                updated_request.save(update_fields=[*form.changed_data, 'updated_at'])
+    submitting = request.method == 'POST'
+    requests = request_for_user(request.user)
+    if submitting:
+        requests = requests.select_for_update()
+    design_request = get_object_or_404(requests, pk=pk)
+    form_data = (request.POST, request.FILES) if submitting else ()
+    form = RequestUpdateForm(*form_data, instance=design_request)
+
+    status_form = None
+    if request.user.is_superuser and (design_request.available_status_codes or request.POST.get('status')):
+        status_form = RequestStatusForm(
+            *form_data, allowed_codes=design_request.available_status_codes, optional=True,
+        )
+
+    if submitting:
+        status_valid = status_form is None or status_form.is_valid()
+        if form.is_valid() and status_valid:
+            updated_request = form.save(commit=False)
+            changed_fields = list(form.changed_data)
+            if status_form is not None and status_form.cleaned_data['status'] is not None:
+                changed_fields.extend(status_form.apply_status(updated_request))
+            if changed_fields:
+                updated_request.save(update_fields=[*changed_fields, 'updated_at'])
                 messages.success(request, 'Изменения сохранены.')
             return redirect(design_request)
-    else:
-        form = RequestUpdateForm(instance=design_request)
 
     return render(request, 'requests/update.html', {
         'form': form,
+        'status_form': status_form,
         'design_request': design_request,
     })
 
@@ -200,11 +217,17 @@ def studio_dashboard(request):
 
 @user_passes_test(check_studio_access)
 @require_safe
+def studio_statuses(request):
+    return render(request, 'studio/statuses.html', {'statuses': Status.objects.all()})
+
+
+@user_passes_test(check_studio_access)
+@require_safe
 def studio_group_detail(request, pk, model):
     group = get_object_or_404(model, pk=pk)
     label = 'Категория' if model is Category else 'Статус'
     return render(request, 'studio/dashboard.html', {
-        'page_title': f'{label} «{group.name}»',
+        'page_title': f'{label} "{group.name}"',
         'group': group,
         'design_requests': group.request_set.select_related('category', 'status'),
     })
@@ -212,28 +235,24 @@ def studio_group_detail(request, pk, model):
 
 @user_passes_test(check_studio_access)
 @require_http_methods(['GET', 'HEAD', 'POST'])
+@transaction.atomic
 def studio_request_status(request, pk):
-    pending_requests = Request.objects.filter(status__code=Status.Code.NEW)
-    if request.method == 'POST':
-        form = RequestStatusForm(request.POST, request.FILES)
-        if form.is_valid():
-            with transaction.atomic():
-                design_request = get_object_or_404(pending_requests.select_for_update(), pk=pk)
-                design_request.status = form.cleaned_data['status']
-                changed_fields = ['status', 'updated_at']
-                if design_request.status.code == Status.Code.IN_PROGRESS:
-                    design_request.comment = form.cleaned_data['comment']
-                    changed_fields.append('comment')
-                else:
-                    design_request.final_image = form.cleaned_data['final_image']
-                    changed_fields.append('final_image')
-                design_request.save(update_fields=changed_fields)
-            messages.success(request, 'Статус заявки обновлён.')
-            return redirect('studio-dashboard')
-    else:
-        form = RequestStatusForm()
+    submitting = request.method == 'POST'
+    requests = Request.objects.all()
+    if submitting:
+        requests = requests.select_for_update()
+    design_request = get_object_or_404(requests, pk=pk)
+    if not design_request.available_status_codes:
+        raise Http404
 
-    design_request = get_object_or_404(pending_requests, pk=pk)
+    form_data = (request.POST, request.FILES) if submitting else ()
+    form = RequestStatusForm(*form_data, allowed_codes=design_request.available_status_codes)
+    if submitting and form.is_valid():
+        changed_fields = form.apply_status(design_request)
+        design_request.save(update_fields=[*changed_fields, 'updated_at'])
+        messages.success(request, 'Статус заявки обновлён.')
+        return redirect('studio-dashboard')
+
     return render(request, 'studio/request_status.html', {
         'form': form,
         'design_request': design_request,

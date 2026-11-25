@@ -3,22 +3,24 @@
 {% block title %}{{ page_title }} · Design.pro{% endblock %}
 
 {% block content %}
-{% url "studio-category-list" as categories_url %}
 <div class="page-heading">
     <h1>{{ page_title }}</h1>
-    {% if group %}<a href="{% url 'studio-dashboard' %}">Все заявки</a>{% endif %}
-    {% if categories_url %}<a class="portal-button portal-button-secondary" href="{{ categories_url }}">Категории</a>{% endif %}
+    <div class="actions">
+        {% if group %}<a class="portal-button portal-button-secondary" href="{% url 'studio-dashboard' %}">Все заявки</a>{% endif %}
+        <a class="portal-button portal-button-secondary" href="{% url 'studio-category-list' %}">Категории</a>
+    </div>
 </div>
 
 {% if statuses %}
-    <nav class="actions" aria-label="Заявки по статусу">
+    <nav class="actions filter-form" aria-label="Заявки по статусу">
         <span>По статусу</span>
-        {% for status in statuses %}<a href="{{ status.get_absolute_url }}">{{ status.name }}</a>{% endfor %}
+        {% for status in statuses %}
+            <a class="portal-button portal-button-secondary portal-button-small" href="{{ status.get_absolute_url }}">{{ status.name }}</a>
+        {% endfor %}
     </nav>
 {% endif %}
 <div class="record-list">
     {% for design_request in design_requests %}
-        {% url "studio-request-status" design_request.pk as status_url %}
         <article class="panel record">
             <div class="record-heading">
                 <h2><a href="{{ design_request.get_absolute_url }}">{{ design_request.title }}</a></h2>
@@ -33,9 +35,12 @@
                 <p class="record-description"><strong>Комментарий студии</strong> — {{ design_request.comment }}</p>
             {% endif %}
             <div class="actions">
-                {% if design_request.plan_image %}<a href="{% url 'request-plan' design_request.pk %}">Открыть файл помещения</a>{% endif %}
-                {% if design_request.status.code == "new" and status_url %}
-                    <a href="{{ status_url }}">Изменить статус</a>
+                {% if design_request.available_status_codes %}
+                    <a class="portal-button portal-button-small" href="{% url 'studio-request-status' design_request.pk %}">Изменить статус</a>
+                {% endif %}
+                <a class="portal-button portal-button-secondary portal-button-small" href="{% url 'request-update' design_request.pk %}">Редактировать заявку</a>
+                {% if design_request.plan_image %}
+                    <a class="portal-button portal-button-secondary portal-button-small" href="{% url 'request-plan' design_request.pk %}">Открыть файл помещения</a>
                 {% endif %}
             </div>
         </article>

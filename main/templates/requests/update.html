@@ -7,16 +7,26 @@
     <h1 id="update-heading">Редактирование заявки</h1>
     <p class="muted">Заявка №{{ design_request.pk }}. Оставьте поле с файлом пустым, чтобы сохранить текущий план помещения.</p>
     {% if design_request.plan_image %}
-        <p><a href="{% url 'request-plan' design_request.pk %}">Открыть текущий план</a></p>
+        <p><a class="portal-button portal-button-secondary portal-button-small" href="{% url 'request-plan' design_request.pk %}">Открыть текущий план</a></p>
     {% endif %}
     <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         {% include "includes/form_fields.html" %}
+        {% if status_form and design_request.available_status_codes %}
+            <fieldset class="section">
+                <legend>Статус заявки</legend>
+                <p class="muted">Текущий статус — {{ design_request.status.name }}.</p>
+                {% include "includes/form_fields.html" with form=status_form %}
+            </fieldset>
+        {% endif %}
         <div class="actions">
             <button class="portal-button" type="submit">Сохранить изменения</button>
-            <a href="{{ design_request.get_absolute_url }}">Отмена</a>
+            <a class="portal-button portal-button-secondary" href="{{ design_request.get_absolute_url }}">Отмена</a>
         </div>
     </form>
     {% include "includes/form_errors.html" %}
+    {% if status_form %}
+        {% include "includes/form_errors.html" with form=status_form %}
+    {% endif %}
 </section>
 {% endblock %}
