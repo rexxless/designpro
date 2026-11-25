@@ -1,27 +1,37 @@
 {% extends "base_generic.html" %}
 
-{% block title %}Администрирование · Design.pro{% endblock %}
+{% block title %}{{ page_title }} · Design.pro{% endblock %}
 
 {% block content %}
 {% url "studio-category-list" as categories_url %}
 <div class="page-heading">
-    <h1>Заявки студии</h1>
+    <h1>{{ page_title }}</h1>
+    {% if group %}<a href="{% url 'studio-dashboard' %}">Все заявки</a>{% endif %}
     {% if categories_url %}<a class="portal-button portal-button-secondary" href="{{ categories_url }}">Категории</a>{% endif %}
 </div>
 
+{% if statuses %}
+    <nav class="actions" aria-label="Заявки по статусу">
+        <span>По статусу</span>
+        {% for status in statuses %}<a href="{{ status.get_absolute_url }}">{{ status.name }}</a>{% endfor %}
+    </nav>
+{% endif %}
 <div class="record-list">
     {% for design_request in design_requests %}
         {% url "studio-request-status" design_request.pk as status_url %}
         <article class="panel record">
             <div class="record-heading">
                 <h2><a href="{{ design_request.get_absolute_url }}">{{ design_request.title }}</a></h2>
-                <span class="status-label">{{ design_request.status.name }}</span>
+                <a class="status-label" href="{{ design_request.status.get_absolute_url }}">{{ design_request.status.name }}</a>
             </div>
             <p class="record-meta">
                 <time datetime="{{ design_request.created_at|date:'c' }}">{{ design_request.created_at|date:"d.m.Y, H:i" }}</time>
-                <span>{{ design_request.category.name }}</span>
+                <a href="{{ design_request.category.get_absolute_url }}">{{ design_request.category.name }}</a>
             </p>
             <p class="record-description">{{ design_request.description }}</p>
+            {% if design_request.comment %}
+                <p class="record-description"><strong>Комментарий студии</strong> — {{ design_request.comment }}</p>
+            {% endif %}
             <div class="actions">
                 {% if design_request.plan_image %}<a href="{% url 'request-plan' design_request.pk %}">Открыть файл помещения</a>{% endif %}
                 {% if design_request.status.code == "new" and status_url %}

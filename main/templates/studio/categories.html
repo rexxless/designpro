@@ -27,7 +27,7 @@
         {% for category in categories %}
             {% url "studio-category-delete" category.pk as delete_url %}
             <li class="panel category-line">
-                <span>{{ category.name }}</span>
+                <a href="{{ category.get_absolute_url }}">{{ category.name }}</a>
                 {% if delete_url %}<a class="danger-link" href="{{ delete_url }}" aria-label="Удалить категорию {{ category.name }}">Удалить</a>{% endif %}
             </li>
         {% empty %}

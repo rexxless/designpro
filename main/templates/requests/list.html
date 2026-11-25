@@ -1,11 +1,11 @@
 {% extends "base_generic.html" %}
 
-{% block title %}Мои заявки · Design.pro{% endblock %}
+{% block title %}{{ page_title }} · Design.pro{% endblock %}
 
 {% block content %}
 {% url "request-create" as create_url %}
 <div class="page-heading">
-    <h1>Мои заявки</h1>
+    <h1>{{ page_title }}</h1>
     {% if create_url %}<a class="portal-button" href="{{ create_url }}">Новая заявка</a>{% endif %}
 </div>
 

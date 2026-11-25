@@ -1,8 +1,10 @@
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser, User
-from django.db import models
+from django.core.files.storage import default_storage
+from django.db import models, router, transaction
 from django.db.models.constraints import UniqueConstraint
-from django.db.models.functions import Lower
+from django.db.models.functions import Collate, Lower
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.urls import reverse
 
 # Create your models here.
@@ -22,6 +24,28 @@ class Request(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    def save(self, *, using=None, update_fields=None, **kwargs):
+        database = using or router.db_for_write(type(self), instance=self)
+        image_fields = ('plan_image', 'final_image')
+        if update_fields is not None:
+            update_fields = frozenset(update_fields)
+            image_fields = [field for field in image_fields if field in update_fields]
+        if self.pk is None or not image_fields:
+            return super().save(using=database, update_fields=update_fields, **kwargs)
+
+        with transaction.atomic(using=database):
+            old_images = (
+                Request.objects.using(database).select_for_update()
+                .filter(pk=self.pk).values_list(*image_fields).first()
+            )
+            super().save(using=database, update_fields=update_fields, **kwargs)
+            if old_images:
+                replaced = {
+                    old for field, old in zip(image_fields, old_images)
+                    if old and old != getattr(self, field).name
+                }
+                delete_unused_images_after_commit(replaced, database)
+
     def __str__(self):
         """String for representing the Model object."""
         return f"{self.title} - {self.status}"
@@ -29,6 +53,25 @@ class Request(models.Model):
     def get_absolute_url(self):
         """Returns the URL to access a detail record for this book."""
         return reverse('request-detail', args=[str(self.id)])
+
+
+def delete_unused_images_after_commit(names, database):
+    def delete_unused_images():
+        requests = Request.objects.using(database)
+        for name in names:
+            if not requests.filter(models.Q(plan_image=name) | models.Q(final_image=name)).exists():
+                default_storage.delete(name)
+
+    if names:
+        transaction.on_commit(delete_unused_images, using=database, robust=True)
+
+
+@receiver(pre_delete, sender=Request)
+def clean_deleted_request_images(sender, instance, using, **kwargs):
+    images = (sender.objects.using(using).filter(pk=instance.pk)
+              .values_list('plan_image', 'final_image').first())
+    if images:
+        delete_unused_images_after_commit({name for name in images if name}, using)
 
 
 class Category(models.Model):
@@ -43,16 +86,15 @@ class Category(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        """Returns the url to access a particular genre instance."""
-        return reverse('category-detail', args=[str(self.id)])
+        return reverse('category-detail', args=[self.pk])
 
     class Meta:
         ordering = ['name']
         constraints = [
             UniqueConstraint(
-                Lower('name'),
+                Collate('name', 'portal_casefold'),
                 name='category_name_case_insensitive_unique',
-                violation_error_message="Category already exists (case-insensitive match)"
+                violation_error_message='Категория с таким названием уже существует.'
             ),
         ]
 

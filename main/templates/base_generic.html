@@ -24,9 +24,11 @@
                 {% endif %}
                 {% if request_create_url %}<a href="{{ request_create_url }}">Новая заявка</a>{% endif %}
                 {% if user.is_superuser and studio_url %}<a href="{{ studio_url }}">Администрирование</a>{% endif %}
+                {% if user.is_staff %}<a href="{% url 'admin:index' %}">Панель Django</a>{% endif %}
+                <a href="{% url 'password_change' %}">Сменить пароль</a>
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
-                    <button class="nav-button" type="submit">Выйти</button>
+                    <button class="nav-button" type="submit">Выход</button>
                 </form>
             {% else %}
                 <a href="{% url 'login' %}">Войти</a>

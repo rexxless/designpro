@@ -5,11 +5,9 @@
 {% block content %}
 <section class="panel form-panel" aria-labelledby="login-heading">
     <h1 id="login-heading">Вход в личный кабинет</h1>
-    {% if next %}<p class="muted">Войдите, чтобы продолжить.</p>{% endif %}
     <form method="post" action="{% url 'login' %}" novalidate>
         {% csrf_token %}
         {% include "includes/form_fields.html" %}
-        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
         <div class="actions">
             <button class="portal-button" type="submit">Войти</button>
         </div>
@@ -17,7 +15,6 @@
     {% include "includes/form_errors.html" %}
     <div class="form-footer actions">
         <a href="{% url 'register' %}">Зарегистрироваться</a>
-        <a href="{% url 'password_reset' %}">Забыли пароль?</a>
     </div>
 </section>
 {% endblock %}

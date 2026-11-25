@@ -26,6 +26,10 @@
 
     <h2>Описание</h2>
     <p class="record-description">{{ design_request.description }}</p>
+    {% if design_request.comment %}
+        <h2>Комментарий студии</h2>
+        <p class="record-description">{{ design_request.comment }}</p>
+    {% endif %}
 
     {% if design_request.plan_image %}
         <section class="section" aria-labelledby="plan-heading">

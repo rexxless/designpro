@@ -1,15 +1,19 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.db.models.functions import Collate
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_safe
 
 from .forms import (
     CategoryForm,
+    LoginForm,
     RegistrationForm,
     RequestCreateForm,
     RequestStatusForm,
@@ -40,6 +44,16 @@ def index(request):
     })
 
 
+class PortalLoginView(LoginView):
+    authentication_form = LoginForm
+    redirect_authenticated_user = True
+
+    def get_success_url(self):
+        if self.request.user.is_superuser:
+            return reverse('studio-dashboard')
+        return self.get_default_redirect_url()
+
+
 def register(request):
     if request.user.is_authenticated:
         return redirect('index')
@@ -55,7 +69,7 @@ def register(request):
                 )
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f'Добро пожаловать в Design.pro, {user.username}!')
-            return redirect('index')
+            return redirect('request-list')
     else:
         form = RegistrationForm()
 
@@ -122,6 +136,7 @@ def request_list(request):
         design_requests = design_requests.filter(status_id=selected_status)
 
     return render(request, 'requests/list.html', {
+        'page_title': 'Заявки' if request.user.is_superuser else 'Мои заявки',
         'design_requests': design_requests,
         'status_options': status_options,
         'selected_status': selected_status,
@@ -176,7 +191,23 @@ def check_studio_access(user):
 @require_http_methods(['GET', 'HEAD'])
 def studio_dashboard(request):
     design_requests = Request.objects.select_related('category', 'status')
-    return render(request, 'studio/dashboard.html', {'design_requests': design_requests})
+    return render(request, 'studio/dashboard.html', {
+        'page_title': 'Заявки студии',
+        'design_requests': design_requests,
+        'statuses': Status.objects.all(),
+    })
+
+
+@user_passes_test(check_studio_access)
+@require_safe
+def studio_group_detail(request, pk, model):
+    group = get_object_or_404(model, pk=pk)
+    label = 'Категория' if model is Category else 'Статус'
+    return render(request, 'studio/dashboard.html', {
+        'page_title': f'{label} «{group.name}»',
+        'group': group,
+        'design_requests': group.request_set.select_related('category', 'status'),
+    })
 
 
 @user_passes_test(check_studio_access)
@@ -215,9 +246,18 @@ def studio_categories(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Категория добавлена.')
-            return redirect('studio-category-list')
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                # Another administrator may have submitted the same name.
+                categories = Category.objects.alias(key=Collate('name', 'portal_casefold'))
+                if not categories.filter(key=form.cleaned_data['name']).exists():
+                    raise
+                form.add_error('name', 'Категория с таким названием уже существует.')
+            else:
+                messages.success(request, 'Категория добавлена.')
+                return redirect('studio-category-list')
     else:
         form = CategoryForm()
 

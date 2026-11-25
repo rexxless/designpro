@@ -5,8 +5,6 @@ from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator, RegexValidator
 from django.contrib.auth.forms import (
     AuthenticationForm,
-    PasswordResetForm,
-    SetPasswordForm,
     UserCreationForm,
 )
 
@@ -33,6 +31,11 @@ class BootstrapFormMixin:
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    username = forms.CharField(
+        strip=False,
+        widget=forms.TextInput(attrs={'autocomplete': 'username', 'autofocus': True}),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -51,9 +54,15 @@ def validate_name(value):
         raise forms.ValidationError('Допускаются только кириллические буквы, пробелы и дефисы.')
 
 
-username_validator = RegexValidator(regex=r'^[A-Za-z-]+\Z')
-
 class RegistrationForm(BootstrapFormMixin, UserCreationForm):
+    username = forms.CharField(
+        label='Логин',
+        max_length=get_user_model()._meta.get_field('username').max_length,
+        strip=False,
+        help_text='Только латинские буквы и дефис.',
+        validators=[RegexValidator(r'\A[A-Za-z-]+\Z', 'Допускаются только латинские буквы и дефис.')],
+        widget=forms.TextInput(attrs={'autocomplete': 'username'}),
+    )
     email = forms.EmailField(label='Email')
 
     first_name = forms.CharField(
@@ -93,25 +102,12 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
 
         self.fields['password1'].label = 'Пароль'
         self.fields['password2'].label = 'Повторите пароль'
-        self.fields['username'].label = 'Логин'
-
-        self.fields['username'].help_text='Только латинские буквы и дефис.'
-
-        self.fields['username'].validators=[username_validator]
-
-        for name in ('username', 'password1', 'password2'):
+        for name in ('password1', 'password2'):
             field = self.fields[name]
             field.widget.attrs['placeholder'] = field.label
 
     def clean_email(self):
-        email = self.cleaned_data['email'].lower()
-
-        if get_user_model().objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError(
-                'Пользователь с таким email уже существует.'
-            )
-
-        return email
+        return self.cleaned_data['email'].lower()
 
 
 class RequestCreateForm(BootstrapFormMixin, forms.ModelForm):
@@ -189,11 +185,3 @@ class CategoryForm(BootstrapFormMixin, forms.ModelForm):
         fields = ('name',)
         labels = {'name': 'Название'}
         help_texts = {'name': ''}
-
-
-class StyledPasswordResetForm(BootstrapFormMixin, PasswordResetForm):
-    pass
-
-
-class StyledSetPasswordForm(BootstrapFormMixin, SetPasswordForm):
-    pass
