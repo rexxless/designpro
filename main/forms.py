@@ -8,7 +8,7 @@ from django.contrib.auth.forms import (
     UserCreationForm,
 )
 
-from .models import Category, Request
+from .models import Category, Request, Status
 
 
 class BootstrapFormMixin:
@@ -150,6 +150,41 @@ class RequestUpdateForm(RequestCreateForm):
         if 'plan_image' in self.changed_data:
             return super().clean_plan_image()
         return self.cleaned_data['plan_image']
+
+
+class RequestStatusForm(BootstrapFormMixin, forms.Form):
+    status = forms.ModelChoiceField(
+        queryset=Status.objects.filter(code__in=(Status.Code.IN_PROGRESS, Status.Code.COMPLETED)),
+        label='Статус',
+        empty_label='Выберите статус',
+    )
+    comment = forms.CharField(label='Комментарий', widget=forms.Textarea, required=False)
+    final_image = forms.ImageField(label='Готовый дизайн', required=False)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get('status')
+        if status is None:
+            return cleaned_data
+
+        if status.code == Status.Code.IN_PROGRESS and not cleaned_data.get('comment'):
+            self.add_error('comment', 'Добавьте комментарий, чтобы принять заявку в работу.')
+        elif (
+            status.code == Status.Code.COMPLETED
+            and 'final_image' in cleaned_data
+            and cleaned_data['final_image'] is None
+        ):
+            self.add_error('final_image', 'Загрузите готовый дизайн, чтобы завершить заявку.')
+
+        return cleaned_data
+
+
+class CategoryForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ('name',)
+        labels = {'name': 'Название'}
+        help_texts = {'name': ''}
 
 
 class StyledPasswordResetForm(BootstrapFormMixin, PasswordResetForm):

@@ -10,9 +10,10 @@ from django.urls import reverse
 class Request(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(max_length=500)
-    category = models.ForeignKey('Category', on_delete=models.RESTRICT)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE)
     plan_image = models.ImageField(upload_to='requests')
     final_image = models.ImageField(upload_to='requests', blank=True, null=True)
+    comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status = models.ForeignKey('Status', on_delete=models.RESTRICT)

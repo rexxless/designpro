@@ -14,7 +14,7 @@
         {% url "studio-request-status" design_request.pk as status_url %}
         <article class="panel record">
             <div class="record-heading">
-                <h2>{{ design_request.title }}</h2>
+                <h2><a href="{{ design_request.get_absolute_url }}">{{ design_request.title }}</a></h2>
                 <span class="status-label">{{ design_request.status.name }}</span>
             </div>
             <p class="record-meta">
@@ -23,8 +23,8 @@
             </p>
             <p class="record-description">{{ design_request.description }}</p>
             <div class="actions">
-                {% if design_request.image %}<a href="{{ design_request.image.url }}">Открыть файл помещения</a>{% endif %}
-                {% if design_request.status.name == "Новая" and status_url %}
+                {% if design_request.plan_image %}<a href="{{ design_request.plan_image.url }}">Открыть файл помещения</a>{% endif %}
+                {% if design_request.status.code == "new" and status_url %}
                     <a href="{{ status_url }}">Изменить статус</a>
                 {% endif %}
             </div>

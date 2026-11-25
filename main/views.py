@@ -1,12 +1,19 @@
 from django.contrib import messages
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import RegistrationForm, RequestCreateForm, RequestUpdateForm
-from .models import Profile, Request, Status
+from .forms import (
+    CategoryForm,
+    RegistrationForm,
+    RequestCreateForm,
+    RequestStatusForm,
+    RequestUpdateForm,
+)
+from .models import Category, Profile, Request, Status
 
 
 def request_for_user(user):
@@ -118,3 +125,81 @@ def request_delete(request, pk):
 
     design_request = get_object_or_404(deletable_requests, pk=pk)
     return render(request, 'requests/confirm_delete.html', {'design_request': design_request})
+
+
+def check_studio_access(user):
+    if user.is_authenticated and not user.is_superuser:
+        raise PermissionDenied
+    return user.is_superuser
+
+
+@user_passes_test(check_studio_access)
+@require_http_methods(['GET', 'HEAD'])
+def studio_dashboard(request):
+    design_requests = Request.objects.select_related('category', 'status')
+    return render(request, 'studio/dashboard.html', {'design_requests': design_requests})
+
+
+@user_passes_test(check_studio_access)
+@require_http_methods(['GET', 'HEAD', 'POST'])
+def studio_request_status(request, pk):
+    pending_requests = Request.objects.filter(status__code=Status.Code.NEW)
+    if request.method == 'POST':
+        form = RequestStatusForm(request.POST, request.FILES)
+        if form.is_valid():
+            with transaction.atomic():
+                design_request = get_object_or_404(pending_requests.select_for_update(), pk=pk)
+                design_request.status = form.cleaned_data['status']
+                changed_fields = ['status', 'updated_at']
+                if design_request.status.code == Status.Code.IN_PROGRESS:
+                    design_request.comment = form.cleaned_data['comment']
+                    changed_fields.append('comment')
+                else:
+                    design_request.final_image = form.cleaned_data['final_image']
+                    changed_fields.append('final_image')
+                design_request.save(update_fields=changed_fields)
+            messages.success(request, 'Статус заявки обновлён.')
+            return redirect('studio-dashboard')
+    else:
+        form = RequestStatusForm()
+
+    design_request = get_object_or_404(pending_requests, pk=pk)
+    return render(request, 'studio/request_status.html', {
+        'form': form,
+        'design_request': design_request,
+    })
+
+
+@user_passes_test(check_studio_access)
+@require_http_methods(['GET', 'HEAD', 'POST'])
+def studio_categories(request):
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Категория добавлена.')
+            return redirect('studio-category-list')
+    else:
+        form = CategoryForm()
+
+    return render(request, 'studio/categories.html', {
+        'form': form,
+        'categories': Category.objects.all(),
+    })
+
+
+@user_passes_test(check_studio_access)
+@require_http_methods(['GET', 'HEAD', 'POST'])
+def studio_category_delete(request, pk):
+    if request.method == 'POST':
+        with transaction.atomic():
+            category = get_object_or_404(Category.objects.select_for_update(), pk=pk)
+            category.delete()
+        messages.success(request, 'Категория удалена.')
+        return redirect('studio-category-list')
+
+    category = get_object_or_404(Category, pk=pk)
+    return render(request, 'studio/confirm_category_delete.html', {
+        'category': category,
+        'affected_count': category.request_set.count(),
+    })
